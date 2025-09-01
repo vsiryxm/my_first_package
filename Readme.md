@@ -11,7 +11,7 @@ $ sui move new my_first_package
 
 先来看看配置文件：
 
-```
+```toml
 [package]
 name = "my_first_package"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
@@ -57,9 +57,9 @@ my_first_package = "0x0"
 
 ## 二、编写合约
 
-我们将 `source/my_first_package.move` 重命名为 `example.move`，并在IDE中打开它：
+我们将 `sources/my_first_package.move` 重命名为 `example.move`，并在IDE中打开它：
 
-```rust
+```move
 module my_first_package::example; // 此处也要记得重命名
 
 // Part 1: 以下这些包，编译器会默认提供，不需要显式导入
@@ -136,7 +136,7 @@ public fun swords_created(self: &Forge): u64 {
 
 ## 三、编译合约
 
-```
+```bash
 $ sui move build
 ```
 编译成功后将返回以下类似内容：
@@ -176,7 +176,7 @@ Test result: OK. Total tests: 0; passed: 0; failed: 0
 
 首先，在 `example.move` 文件的模块定义内部，添加一个 **基础测试函数**：
 
-```rust
+```move
 #[test]
 fun test_sword_create() {
     // Create a dummy TxContext for testing
@@ -265,7 +265,7 @@ error[E06001]: unused value without 'drop'
 为让测试正常工作，需要使用 **transfer 模块**（默认已导入）。
 在测试函数末尾（`assert!` 调用之后）添加如下代码，将剑的所有权转移到一个新创建的伪地址：
 
-```rust
+```move
 let dummy_address = @0xCAFE;
 transfer::public_transfer(sword, dummy_address);
 ```
@@ -286,12 +286,12 @@ Test result: OK. Total tests: 1; passed: 1; failed: 0
 >  * 只有匹配的测试会被执行，其余测试会被忽略。
 
 例如：
-```
+```bash
 $ sui move test sword
 ```
 上一个命令运行所有名称包含 sword 的测试。
 你可以通过以下方式发现更多测试选项：
-```
+```bash
 $ sui move test -h
 ```
 
@@ -307,7 +307,7 @@ Sui 提供了一个 `test_scenario` 模块，用于支持这类 **Sui 专属测�
 
 接下来，请更新你的 `example.move` 文件，添加一个可以在 Sui 上调用的函数，用于实现 **剑（sword）的创建**。完成后，你就可以基于此，新增一个 **多交易测试**，利用 `test_scenario` 模块来验证这些新能力。把这个函数写在访问器函数（注释中的 Part 5 部分）之后。
 
-```rust
+```move
 public fun sword_create(magic: u64, strength: u64, ctx: &mut TxContext): Sword {
     Sword {
         id: object::new(ctx),
@@ -320,7 +320,7 @@ public fun sword_create(magic: u64, strength: u64, ctx: &mut TxContext): Sword {
 新增的函数代码会用到 结构体创建 和 Sui 内部模块（如 tx_context），写法与前面章节中你已经见过的内容类似。关键点在于：函数必须具有正确的函数签名。
 在包含这个新函数之后，需要再写一个测试函数，确保它的行为符合预期。
 
-```
+```move
 #[test]
 fun test_sword_transactions() {
     use sui::test_scenario;
@@ -442,7 +442,7 @@ fun init(otw: EXAMPLE, ctx: &mut TxContext)
 
 在当前示例中，模块的 `init` 函数会创建一个 **Forge 对象**。
 
-```rust
+```move
 fun init(ctx: &mut TxContext) {
     let admin = Forge {
         id: object::new(ctx),
@@ -468,7 +468,7 @@ fun init(ctx: &mut TxContext) {
 
 这样，`init` 函数创建的 Forge 对象就可以被 `new_sword` 使用，同时你也可以编写测试来验证 Forge 对象是否正确维护了创建的剑数量。
 
-```
+```move
 public fun new_sword(forge: &mut Forge, magic: u64, strength: u64, ctx: &mut TxContext): Sword {
     forge.swords_created = forge.swords_created + 1;
     Sword {
@@ -480,7 +480,7 @@ public fun new_sword(forge: &mut Forge, magic: u64, strength: u64, ctx: &mut TxC
 ```
 现在，创建一个函数来测试模块初始化：
 
-```
+```move
 #[test]
 fun test_module_init() {
     use sui::test_scenario;
@@ -542,10 +542,10 @@ fun test_module_init() {
 
 
 ## 五、部署合约
-```
+```bash
 $ sui client publish --gas-budget 5000000
 ```
-> 从 Suiv1.24.1 版本开始，CLI命令不再需要 --gas-budget 该选项。
+> 从 Sui v1.24.1 起 CLI 在某些命令下不再强制要求 --gas-budget 选项。
 
 如果发布交易成功，你在终端应该会看到以下信息：交易数据、交易效果、交易块事件、对象更改和余额更改。
 ```
@@ -609,7 +609,7 @@ $ sui client objects
 
 例如，可以通过调用 example 包中的 new_sword 函数创建一个新的 Sword 对象，然后将该 Sword 对象转移到任意地址。
 
-```
+```bash
 $ sui client ptb \
 	--assign forge @<FORGE-ID> \
 	--assign to_address @<TO-ADDRESS> \
@@ -625,7 +625,7 @@ $ sui client ptb \
 
 确保将 <FORGE-ID>、<TO-ADDRESS> 和 <PACKAGE-ID> 分别替换为 Forge 对象的实际 objectId、收件人的地址（在本例中为你当前激活的地址）和合约的 packageID：
 
-```
+```bash
 $ sui client ptb \
   --assign forge @0x330b5111c8f4a24b25369c4f8f9379210abe8e13f7fa43b9f9e3c93a728257cb \
   --assign to_address @0xffff5527c9b0e8119c64a6541c7c68eb9bf51a205183127fafbef5e422b1c9c1 \
@@ -678,30 +678,30 @@ $ sui client objects
 Move 目前没有原生调试器。不过，你可以使用 std::debug 模块，将任意值打印到控制台，从而监控变量值并了解模块的逻辑。
 
 首先，在源文件中为 debug 模块声明一个别名，以便更简洁地访问：
-```
+```move
 use std::debug;
 ```
 然后在你想要打印出值 `v` 的地方，无论其类型如何，添加以下代码：
-```
+```move
 debug::print(&v);
 ```
 或者如果 `v` 已经是一个引用，则执行以下命令：
-```
+```move
 debug::print(v);
 ```
 调试模块还提供了打印当前堆栈跟踪的功能：
-```
+```move
 debug::print_stack_trace();
 ```
 或者，任何中止或断言失败的调用也会在失败点打印堆栈跟踪。
 
 回到 example.move，在代码的开头引入：
-```
+```move
 use std::debug;
 ```
 
 以调试 `new_sword` 为例，在终端打印出 `forge` 的值，也可以打印堆栈跟踪信息：
-```
+```move
 public fun new_sword(forge: &mut Forge, magic: u64, strength: u64, ctx: &mut TxContext): Sword {
     debug::print(forge); // 调试打印
     forge.swords_created = forge.swords_created + 1;
@@ -717,7 +717,7 @@ public fun new_sword(forge: &mut Forge, magic: u64, strength: u64, ctx: &mut TxC
 
 运行`sui move test`看看效果，当测试调用 `new_sword` 函数时，你会看到：
 
-```
+```bash
 $ sui move test
 INCLUDING DEPENDENCY Bridge
 INCLUDING DEPENDENCY SuiSystem
